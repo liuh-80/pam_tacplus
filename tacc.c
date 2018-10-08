@@ -76,6 +76,7 @@ int tac_encryption = 1;
 typedef unsigned char flag;
 flag quiet = 0;
 char *user = NULL; /* global, because of signal handler */
+char *iface = NULL; /* -I interface or VRF to use for connection */
 
 /* command line options */
 static struct option long_options[] = {
@@ -97,6 +98,7 @@ static struct option long_options[] = {
     { "service", required_argument, NULL, 'S' },
     { "protocol", required_argument, NULL, 'P' },
     { "remote", required_argument, NULL, 'r' },
+    { "interface", required_argument, NULL, 'I' },
 	{ "login", required_argument, NULL, 'L' },
 
 /* modifiers */
@@ -107,7 +109,7 @@ static struct option long_options[] = {
     { 0, 0, 0, 0 } };
 
 /* command line letters */
-char *opt_string = "TRAVhu:p:s:k:c:qr:wnS:P:L:";
+char *opt_string = "TRAVIhu:p:s:k:c:qr:wnS:P:L:";
 
 int main(int argc, char **argv) {
 	char *pass = NULL;
@@ -168,6 +170,9 @@ int main(int argc, char **argv) {
 				showversion(argv[0]);
 			case 'h':
 				showusage(argv[0]);
+            case 'I':
+                iface = optarg;
+				break;
 			case 'u':
 				user = optarg;
 				break;
@@ -283,7 +288,7 @@ int main(int argc, char **argv) {
 		tac_add_attrib(&attr, "service", service);
 		tac_add_attrib(&attr, "protocol", protocol);
 
-		tac_fd = tac_connect_single(tac_server, tac_secret, NULL, 60);
+		tac_fd = tac_connect_single(tac_server, tac_secret, NULL, 60, iface);
 		if (tac_fd < 0) {
 			if (!quiet)
 				printf("Error connecting to TACACS+ server: %m\n");
@@ -321,7 +326,7 @@ int main(int argc, char **argv) {
 		tac_add_attrib(&attr, "service", service);
 		tac_add_attrib(&attr, "protocol", protocol);
 
-		tac_fd = tac_connect_single(tac_server, tac_secret, NULL, 60);
+		tac_fd = tac_connect_single(tac_server, tac_secret, NULL, 60, iface);
 		if (tac_fd < 0) {
 			if (!quiet)
 				printf("Error connecting to TACACS+ server: %m\n");
@@ -404,7 +409,7 @@ int main(int argc, char **argv) {
 		sprintf(buf, "%hu", task_id);
 		tac_add_attrib(&attr, "task_id", buf);
 
-		tac_fd = tac_connect_single(tac_server, tac_secret, NULL, 60);
+		tac_fd = tac_connect_single(tac_server, tac_secret, NULL, 60, iface);
 		if (tac_fd < 0) {
 			if (!quiet)
 				printf("Error connecting to TACACS+ server: %m\n");
@@ -445,7 +450,7 @@ void authenticate(const struct addrinfo *tac_server, const char *tac_secret,
 	int ret;
 	struct areply arep;
 
-	tac_fd = tac_connect_single(tac_server, tac_secret, NULL, 60);
+	tac_fd = tac_connect_single(tac_server, tac_secret, NULL, 60, iface);
 	if (tac_fd < 0) {
 		if (!quiet)
 			printf("Error connecting to TACACS+ server: %m\n");
