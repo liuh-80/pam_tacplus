@@ -36,6 +36,7 @@ int tac_srv_no = 0;
 char tac_service[64];
 char tac_protocol[64];
 char tac_prompt[64];
+char *__vrfname=NULL;
 
 void _pam_log(int err, const char *format,...) {
     char msg[256];
@@ -271,6 +272,8 @@ int _pam_parse (int argc, const char **argv) {
             } else { 
                 tac_readtimeout_enable = 1;
             }
+        } else if(!strncmp(*argv, "vrf=", 4)) {
+            __vrfname = strdup(*argv + 4);
         } else {
             _pam_log (LOG_WARNING, "unrecognized option: %s", *argv);
         }

@@ -42,7 +42,7 @@ int tac_timeout = 5;
  *   >= 0 : valid fd
  *   <  0 : error status code, see LIBTAC_STATUS_...
  */
-int tac_connect(struct addrinfo **server, char **key, int servers) {
+int tac_connect(struct addrinfo **server, char **key, int servers, char *iface) {
     int tries;
     int fd=-1;
 
@@ -50,7 +50,7 @@ int tac_connect(struct addrinfo **server, char **key, int servers) {
         TACSYSLOG((LOG_ERR, "%s: no TACACS+ servers defined", __FUNCTION__))
     } else {
         for ( tries = 0; tries < servers; tries++ ) {   
-            if((fd=tac_connect_single(server[tries], key[tries], NULL, tac_timeout)) >= 0 ) {
+            if((fd=tac_connect_single(server[tries], key[tries], NULL, tac_timeout, iface)) >= 0 ) {
                 /* tac_secret was set in tac_connect_single on success */
                 break;
             }
@@ -66,8 +66,9 @@ int tac_connect(struct addrinfo **server, char **key, int servers) {
 /* return value:
  *   >= 0 : valid fd
  *   <  0 : error status code, see LIBTAC_STATUS_...
+ *   If iface is non-null, try to BIND to that interface, to support specific routing, including VRF.
  */
-int tac_connect_single(const struct addrinfo *server, const char *key, struct addrinfo *srcaddr, int timeout) {
+int tac_connect_single(const struct addrinfo *server, const char *key, struct addrinfo *srcaddr, int timeout, char *iface) {
     int retval = LIBTAC_STATUS_CONN_ERR; /* default retval */
     int fd = -1;
     int flags, rc;
@@ -89,6 +90,19 @@ int tac_connect_single(const struct addrinfo *server, const char *key, struct ad
         TACSYSLOG((LOG_ERR,"%s: socket creation error: %s", __FUNCTION__,
             strerror(errno)))
         return LIBTAC_STATUS_CONN_ERR;
+    }
+
+    if (iface) {
+        /*  do not fail if the bind fails, connection may still succeed */
+        if (setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, iface,
+            strlen(iface)+1) < 0) {
+            TACSYSLOG((LOG_WARNING, ":%s: Binding socket to device %s failed.",
+                __FUNCTION__, iface))
+        } else {
+            TACDEBUG((LOG_DEBUG, "%s: Binding socket to device %s succeeded.",
+                __FUNCTION__, iface))
+        }
+
     }
 
     /* get flags for restoration later */
@@ -166,7 +180,6 @@ int tac_connect_single(const struct addrinfo *server, const char *key, struct ad
     }
 
     /* connected ok */
-    TACDEBUG((LOG_DEBUG, "%s: connected to %s", __FUNCTION__, ip))
     retval = fd;
 
     /* set current tac_secret */
