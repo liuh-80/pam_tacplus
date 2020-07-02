@@ -37,6 +37,8 @@ char tac_service[64];
 char tac_protocol[64];
 char tac_prompt[64];
 char *__vrfname=NULL;
+char tac_source_ip[64];
+struct addrinfo *tac_source_addr = NULL;
 
 void _pam_log(int err, const char *format,...) {
     char msg[256];
@@ -183,6 +185,12 @@ int _pam_parse (int argc, const char **argv) {
     tac_protocol[0] = 0;
     tac_prompt[0] = 0;
     tac_login[0] = 0;
+    tac_source_ip[0] = 0;
+
+    if (tac_source_addr != NULL) {
+        freeaddrinfo(tac_source_addr);
+        tac_source_addr = NULL;
+    }
 
     for (ctrl = 0; argc-- > 0; ++argv) {
         if (!strcmp (*argv, "debug")) { /* all */
@@ -274,6 +282,10 @@ int _pam_parse (int argc, const char **argv) {
             }
         } else if(!strncmp(*argv, "vrf=", 4)) {
             __vrfname = strdup(*argv + 4);
+        } else if (!strncmp (*argv, "source_ip=", strlen("source_ip="))) {
+            /* source ip for the packets */
+            strncpy (tac_source_ip, *argv + strlen("source_ip="), sizeof(tac_source_ip));
+            set_source_ip (tac_source_ip, &tac_source_addr);
         } else {
             _pam_log (LOG_WARNING, "unrecognized option: %s", *argv);
         }
@@ -292,8 +304,27 @@ int _pam_parse (int argc, const char **argv) {
         _pam_log(LOG_DEBUG, "tac_protocol='%s'", tac_protocol);
         _pam_log(LOG_DEBUG, "tac_prompt='%s'", tac_prompt);
         _pam_log(LOG_DEBUG, "tac_login='%s'", tac_login);
+        _pam_log(LOG_DEBUG, "tac_source_ip='%s'", tac_source_ip);
     }
 
     return ctrl;
 }    /* _pam_parse */
 
+/* set source ip address for the outgoing tacacs packets */
+void set_source_ip(const char *tac_source_ip,
+                   struct addrinfo **source_address) {
+
+    struct addrinfo hints;
+    int rv;
+
+    /* set the source ip address for the tacacs packets */
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    if ((rv = getaddrinfo(tac_source_ip, NULL, &hints,
+                          source_address)) != 0) {
+        _pam_log(LOG_ERR, "error setting the source ip information");
+    } else {
+        _pam_log(LOG_DEBUG, "source ip is set");
+    }
+}
