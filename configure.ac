@@ -19,6 +19,7 @@ AC_INIT(pam_tacplus, 1.4.1, [jeroen@jeroennijhof.nl,pawel.krawczyk@hush.com])
 AC_CONFIG_AUX_DIR(config)
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_SRCDIR([pam_tacplus.c])
+AC_CONFIG_SRCDIR([bash_tacplus.c])
 AC_CONFIG_HEADER([config.h])
 AC_CONFIG_MACRO_DIR([config])
 
@@ -95,6 +96,7 @@ AM_CONDITIONAL(DOC, test "x$enable_doc" != "xno")
 dnl --------------------------------------------------------------------
 dnl Generate made files
 AC_CONFIG_FILES([Makefile
-		 libtac.pc
-                 pam_tacplus.spec])
+                 libtac.pc
+                 pam_tacplus.spec
+                 bash_tacplus.spec])
 AC_OUTPUT

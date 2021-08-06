@@ -58,7 +58,13 @@ pam_tacplus_la_CFLAGS = $(AM_CFLAGS) -I $(top_srcdir)/libtac/include
 pam_tacplus_la_LDFLAGS = -module -avoid-version
 pam_tacplus_la_LIBADD = libtac.la
 
-EXTRA_DIST = pam_tacplus.spec libtac.pc.in
+module_LTLIBRARIES += bash_tacplus.la
+bash_tacplus_la_SOURCES = bash_tacplus.c
+bash_tacplus_la_CFLAGS = $(AM_CFLAGS) -I $(top_srcdir)/libtac/include
+bash_tacplus_la_LDFLAGS = -module -avoid-version
+bash_tacplus_la_LIBADD = libtac.la
+
+EXTRA_DIST = pam_tacplus.spec bash_tacplus.spec libtac.pc.in
 if DOC
 dist_doc_DATA = sample.pam README.md AUTHORS ChangeLog
 endif
