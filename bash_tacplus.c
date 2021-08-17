@@ -12,8 +12,8 @@ typedef struct {
     const char *key;
 } tacacs_server_t;
 
-/* Tacacs servers */
-static tacacs_server_t tacacs_servers[TAC_PLUS_MAXSERVERS];
+/* Tacacs control flag */
+static int tacacs_ctrl;
 
 /*
  * Output verbose log.
@@ -55,7 +55,10 @@ void output_error (const char *format, ...)
  */
 void plugin_init ()
 {
-    output_verbose_log("tacacs plugin initialize.");
+    // load config file
+    tacacs_ctrl = parse_config_file (tacacs_config_file);
+
+    output_verbose_log("tacacs plugin initialized.");
 }
 
 /*

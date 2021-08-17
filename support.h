@@ -49,5 +49,10 @@ char *_pam_get_user(pam_handle_t *);
 char *_pam_get_terminal(pam_handle_t *);
 char *_pam_get_rhost(pam_handle_t *);
 
+/*
+ * Parse config file.
+ */
+int parse_config_file(const char *file);
+
 #endif  /* PAM_TACPLUS_SUPPORT_H */
 
