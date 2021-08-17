@@ -2,6 +2,7 @@
 #include <stdarg.h>
 
 #include "libtac.h"
+#include "support.h"
 
 const char *tacacs_config_file = "/etc/tacplus_servers";
 
