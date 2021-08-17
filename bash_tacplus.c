@@ -248,11 +248,13 @@ void plugin_uninit ()
 /*
  * Tacacs authorization.
  */
-int on_shell_execve (cmd, argv)
+int on_shell_execve (user, cmd, argv)
+     char *user;
      char *cmd;
      char **argv;
 {
     output_verbose_log ("Authorization parameters:\n");
+    output_verbose_log ("    Current user: %s\n", user);
     output_verbose_log ("    Command full path: %s\n", cmd);
     output_verbose_log ("    Parameters:\n");
     char **parameter_array_pointer = argv;
@@ -264,7 +266,7 @@ int on_shell_execve (cmd, argv)
         parameter_array_pointer++;
     }
 
-    int ret = authorization_with_host_and_tty("test", cmd, argv, 0);
+    int ret = authorization_with_host_and_tty(user, cmd, argv, 0);
     switch (ret) {
         case 0:
             output_verbose_log ("%s authorize successed by TACACS+ with given arguments\n", cmd);
