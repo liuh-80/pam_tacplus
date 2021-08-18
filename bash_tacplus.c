@@ -248,12 +248,10 @@ void plugin_uninit ()
 /*
  * Tacacs authorization.
  */
-int on_shell_execve (user, cmd, argv)
-     char *user;
-     char *cmd;
-     char **argv;
+int on_shell_execve (char *user, int shell_level, char *cmd, char **argv)
 {
     output_verbose_log ("Authorization parameters:\n");
+    output_verbose_log ("    Shell level: %d\n", shell_level);
     output_verbose_log ("    Current user: %s\n", user);
     output_verbose_log ("    Command full path: %s\n", cmd);
     output_verbose_log ("    Parameters:\n");
@@ -264,6 +262,12 @@ int on_shell_execve (user, cmd, argv)
         
         // move to next parameter
         parameter_array_pointer++;
+    }
+    
+    // when shell_level > 1, it's a recursive command in shell script.
+    if (shell_level > 1) {
+        output_verbose_log ("Recursive command %s ignored.\n", cmd);
+        return 0;
     }
 
     int ret = authorization_with_host_and_tty(user, cmd, argv, 0);
