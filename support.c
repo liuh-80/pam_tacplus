@@ -177,9 +177,8 @@ int tacacs_get_password (pam_handle_t * pamh, int flags
  *    1. command line parameter
  *    2. config file
  */
-int _pam_parse_arg (const char *arg) {
+int _pam_parse_arg (const char *arg, char* current_secret, uint current_secret_buffer_size) {
     int ctrl = 0;
-    static const char *current_secret = NULL;
 
     if (!strcmp (arg, "debug")) { /* all */
         ctrl |= PAM_TAC_DEBUG;
@@ -235,7 +234,8 @@ int _pam_parse_arg (const char *arg) {
             if ((rv = getaddrinfo(server_name, (port == NULL) ? "49" : port, &hints, &servers)) == 0) {
                 for(server = servers; server != NULL && tac_srv_no < TAC_PLUS_MAXSERVERS; server = server->ai_next) {
                     tac_srv[tac_srv_no].addr = server;
-                    tac_srv[tac_srv_no].key = current_secret;
+                    /* copy secret to key */
+                    snprintf(tac_srv[tac_srv_no].key, sizeof(tac_srv[tac_srv_no].key), "%s", current_secret);
                     tac_srv_no++;
                 }
             } else {
@@ -250,14 +250,16 @@ int _pam_parse_arg (const char *arg) {
     } else if (!strncmp (arg, "secret=", 7)) {
         int i;
 
-        current_secret = arg + 7;     /* points right into arg (which is const) */
+        /* points right into arg (which is const) */
+        snprintf(current_secret, current_secret_buffer_size, "%s", arg + 7);
 
         /* if 'secret=' was given after a 'server=' parameter, fill in the current secret */
         for(i = tac_srv_no-1; i >= 0; i--) {
             if (tac_srv[i].key != NULL)
                 break;
 
-            tac_srv[i].key = current_secret;
+            /* copy secret to key */
+            snprintf(tac_srv[i].key, sizeof(tac_srv[i].key), "%s", current_secret);
         }
     } else if (!strncmp (arg, "timeout=", 8)) {
         /* FIXME atoi() doesn't handle invalid numeric strings well */
@@ -275,6 +277,7 @@ int _pam_parse_arg (const char *arg) {
     return ctrl;
 }    /* _pam_parse_arg */
 
+
 /*
  * Parse config file.
  */
@@ -289,11 +292,13 @@ int parse_config_file(const char *file) {
         return 0;
     }
 
+    char current_secret[256];
+    memset(current_secret, 0, sizeof(current_secret));
     while (fgets(line_buffer, sizeof line_buffer, config_file)) {
         if(*line_buffer == '#' || isspace(*line_buffer))
             continue; /* skip comments and blank line. */
         strtok(line_buffer, " \t\n\r\f");
-        ctrl |= _pam_parse_arg(line_buffer);
+        ctrl |= _pam_parse_arg(line_buffer, current_secret, sizeof(current_secret));
     }
 
     fclose(config_file);
@@ -312,8 +317,10 @@ int _pam_parse (int argc, const char **argv) {
     tac_prompt[0] = 0;
     tac_login[0] = 0;
 
+    char current_secret[256];
+    memset(current_secret, 0, sizeof(current_secret));
     for (ctrl = 0; argc-- > 0; ++argv) {
-        ctrl |= _pam_parse_arg(*argv);
+        ctrl |= _pam_parse_arg(*argv, current_secret, sizeof(current_secret));
     }
 
     if (ctrl & PAM_TAC_DEBUG) {

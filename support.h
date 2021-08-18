@@ -34,7 +34,7 @@
 
 typedef struct {
     struct addrinfo *addr;
-    const char *key;
+    const char key[256];
 } tacplus_server_t;
 
 extern tacplus_server_t tac_srv[TAC_PLUS_MAXSERVERS];

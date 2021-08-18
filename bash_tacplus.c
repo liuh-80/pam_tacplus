@@ -29,10 +29,7 @@ void output_verbose_log (const char *format, ...)
   fprintf (stderr, "TACACS+: ");
 
   va_start (args, format);
-
   vfprintf (stderr, format, args);
-  fprintf (stderr, "\n");
-
   va_end (args);
 }
 
@@ -42,14 +39,11 @@ void output_verbose_log (const char *format, ...)
 void output_error (const char *format, ...)
 {
   va_list args;
-
+  
   fprintf (stderr, "TACACS+: ");
-
+  
   va_start (args, format);
-
   vfprintf (stderr, format, args);
-  fprintf (stderr, "\n");
-
   va_end (args);
 }
 
@@ -158,7 +152,7 @@ int tacacs_authorization(
         server_fd = tac_connect_single(tac_srv[server_idx].addr, tac_srv[server_idx].key, NULL, tac_timeout);
         if(server_fd < 0) {
             // connect to tacacs server failed
-            output_debug("Failed to connecting to %s to request authorization for %s: %s\n", cmd, tac_ntop(tac_srv[server_idx].addr->ai_addr), cmd, strerror(errno));
+            output_debug("Failed to connecting to %s to request authorization for %s: %s\n", tac_ntop(tac_srv[server_idx].addr->ai_addr), cmd, strerror(errno));
             continue;
         }
         
@@ -231,10 +225,15 @@ int authorization_with_host_and_tty(const char *user, const char *cmd, char **ar
  */
 void plugin_init ()
 {
-    // load config file
+    // load config file: tacacs_config_file
     tacacs_ctrl = parse_config_file (tacacs_config_file);
 
-    output_verbose_log("tacacs plugin initialized.");
+    output_verbose_log("tacacs plugin initialized.\n");
+    output_verbose_log("tacacs config:\n");
+    int server_idx;
+    for(server_idx = 0; server_idx < tac_srv_no; server_idx++) {
+        output_verbose_log ("Server %d, address:%s, key:%s\n", server_idx, tac_ntop(tac_srv[server_idx].addr->ai_addr),tac_srv[server_idx].key);
+    }
 }
 
 /*
@@ -258,14 +257,14 @@ int on_shell_execve (char *user, int shell_level, char *cmd, char **argv)
     char **parameter_array_pointer = argv;
     while (*parameter_array_pointer != 0) {
         // output parameter
-        output_verbose_log ("        %s", *parameter_array_pointer);
+        output_verbose_log ("        %s\n", *parameter_array_pointer);
         
         // move to next parameter
         parameter_array_pointer++;
     }
     
     // when shell_level > 1, it's a recursive command in shell script.
-    if (shell_level > 1) {
+    if (shell_level > 2) {
         output_verbose_log ("Recursive command %s ignored.\n", cmd);
         return 0;
     }
