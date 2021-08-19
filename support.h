@@ -26,9 +26,15 @@
 
 #include <security/pam_modules.h>
 
+/* pam_tacplus command line options */
+#define PAM_TAC_DEBUG 0x01
+#define PAM_TAC_ACCT  0x02 /* account on all specified servers */
+#define PAM_TAC_USE_FIRST_PASS 0x04
+#define PAM_TAC_TRY_FIRST_PASS 0x08
+
 typedef struct {
     struct addrinfo *addr;
-    const char *key;
+    char key[256];
 } tacplus_server_t;
 
 extern tacplus_server_t tac_srv[TAC_PLUS_MAXSERVERS];
@@ -49,6 +55,16 @@ void *_xcalloc (size_t);
 char *_pam_get_user(pam_handle_t *);
 char *_pam_get_terminal(pam_handle_t *);
 char *_pam_get_rhost(pam_handle_t *);
+
+/*
+ * Parse config file.
+ */
+int parse_config_file(const char *file);
+
+/*
+ * Free tacacs server addrinfo.
+ */
+void free_tacacs_server_addr();
 
 #endif  /* PAM_TACPLUS_SUPPORT_H */
 
