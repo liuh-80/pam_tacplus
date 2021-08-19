@@ -34,7 +34,7 @@
 
 typedef struct {
     struct addrinfo *addr;
-    const char key[256];
+    char key[256];
 } tacplus_server_t;
 
 extern tacplus_server_t tac_srv[TAC_PLUS_MAXSERVERS];
@@ -59,6 +59,11 @@ char *_pam_get_rhost(pam_handle_t *);
  * Parse config file.
  */
 int parse_config_file(const char *file);
+
+/*
+ * Free tacacs server addrinfo.
+ */
+void free_tacacs_server_addr();
 
 #endif  /* PAM_TACPLUS_SUPPORT_H */
 

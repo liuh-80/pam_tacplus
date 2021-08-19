@@ -136,8 +136,10 @@ int _pam_account(pam_handle_t *pamh, int argc, const char **argv,
         syslog(LOG_DEBUG, "%s: tac_srv_no=%d", __FUNCTION__, tac_srv_no);
     }
 
-    if ((user = _pam_get_user(pamh)) == NULL)
+    if ((user = _pam_get_user(pamh)) == NULL) {
+	free_tacacs_server_addr();
         return PAM_USER_UNKNOWN;
+    }
 
     if (ctrl & PAM_TAC_DEBUG)
         syslog(LOG_DEBUG, "%s: username [%s] obtained", __FUNCTION__, user);
@@ -156,6 +158,7 @@ int _pam_account(pam_handle_t *pamh, int argc, const char **argv,
        be supplied in command line  */
     if(*tac_service == '\0') {
         _pam_log (LOG_ERR, "ACC: TACACS+ service type not configured");
+        free_tacacs_server_addr();
         return PAM_AUTH_ERR;
     }
     if(*tac_protocol == '\0') {
@@ -206,6 +209,8 @@ int _pam_account(pam_handle_t *pamh, int argc, const char **argv,
         signal(SIGCHLD, SIG_DFL);
         signal(SIGHUP, SIG_DFL);
     }
+
+    free_tacacs_server_addr();
     return status;
 }
 
@@ -236,8 +241,10 @@ int pam_sm_authenticate (pam_handle_t * pamh, int flags,
         syslog(LOG_DEBUG, "%s: called (pam_tacplus v%u.%u.%u)",
             __FUNCTION__, PAM_TAC_VMAJ, PAM_TAC_VMIN, PAM_TAC_VPAT);
 
-    if ((user = _pam_get_user(pamh)) == NULL)
+    if ((user = _pam_get_user(pamh)) == NULL) {
+        free_tacacs_server_addr();
         return PAM_USER_UNKNOWN;
+    }
 
     if (ctrl & PAM_TAC_DEBUG)
         syslog(LOG_DEBUG, "%s: user [%s] obtained", __FUNCTION__, user);
@@ -246,6 +253,7 @@ int pam_sm_authenticate (pam_handle_t * pamh, int flags,
     if (retval != PAM_SUCCESS || pass == NULL || *pass == '\0') {
         _pam_log(LOG_ERR, "unable to obtain password");
         free(pass);
+        free_tacacs_server_addr();
         return PAM_CRED_INSUFFICIENT;
     }
 
@@ -253,6 +261,7 @@ int pam_sm_authenticate (pam_handle_t * pamh, int flags,
     if (retval != PAM_SUCCESS) {
         _pam_log(LOG_ERR, "unable to set password");
         free(pass);
+        free_tacacs_server_addr();
         return PAM_CRED_INSUFFICIENT;
     }
 
@@ -487,6 +496,7 @@ int pam_sm_authenticate (pam_handle_t * pamh, int flags,
         pass = NULL;
     }
 
+    free_tacacs_server_addr();
     return status;
 }    /* pam_sm_authenticate */
 
@@ -502,6 +512,7 @@ int pam_sm_setcred (pam_handle_t * pamh, int flags,
         syslog (LOG_DEBUG, "%s: called (pam_tacplus v%u.%u.%u)"
             , __FUNCTION__, PAM_TAC_VMAJ, PAM_TAC_VMIN, PAM_TAC_VPAT);
 
+    free_tacacs_server_addr();
     return PAM_SUCCESS;
 }    /* pam_sm_setcred */
 
@@ -536,8 +547,10 @@ int pam_sm_acct_mgmt (pam_handle_t * pamh, int flags,
         syslog (LOG_DEBUG, "%s: called (pam_tacplus v%u.%u.%u)"
             , __FUNCTION__, PAM_TAC_VMAJ, PAM_TAC_VMIN, PAM_TAC_VPAT);
 
-    if ((user = _pam_get_user(pamh)) == NULL)
+    if ((user = _pam_get_user(pamh)) == NULL) {
+        free_tacacs_server_addr();
         return PAM_USER_UNKNOWN;
+    }
 
     if (ctrl & PAM_TAC_DEBUG)
         syslog(LOG_DEBUG, "%s: username obtained [%s]", __FUNCTION__, user);
@@ -558,6 +571,7 @@ int pam_sm_acct_mgmt (pam_handle_t * pamh, int flags,
        than TACACS+ */
     if(active_server.addr == NULL) {
         _pam_log (LOG_ERR, "user not authenticated by TACACS+");
+        free_tacacs_server_addr();
         return PAM_AUTH_ERR;
     }
     if (ctrl & PAM_TAC_DEBUG)
@@ -568,6 +582,7 @@ int pam_sm_acct_mgmt (pam_handle_t * pamh, int flags,
        be supplied in command line  */
     if(!*tac_service) {
         _pam_log (LOG_ERR, "SM: TACACS+ service type not configured");
+        free_tacacs_server_addr();
         return PAM_AUTH_ERR;
     }
     if(!*tac_protocol) {
@@ -581,8 +596,11 @@ int pam_sm_acct_mgmt (pam_handle_t * pamh, int flags,
     tac_fd = tac_connect_single(active_server.addr, active_server.key, NULL, tac_timeout);
     if(tac_fd < 0) {
         _pam_log (LOG_ERR, "TACACS+ server unavailable");
-        if(arep.msg != NULL)
+        if(arep.msg != NULL) {
             free (arep.msg);
+        }
+
+        free_tacacs_server_addr();
         return PAM_AUTH_ERR;
     }
 
@@ -596,6 +614,7 @@ int pam_sm_acct_mgmt (pam_handle_t * pamh, int flags,
             free (arep.msg);
 
         close(tac_fd);
+        free_tacacs_server_addr();
         return PAM_AUTH_ERR;
     }
 
@@ -612,6 +631,7 @@ int pam_sm_acct_mgmt (pam_handle_t * pamh, int flags,
             free (arep.msg);
 
         close(tac_fd);
+        free_tacacs_server_addr();
         return PAM_PERM_DENIED;
     }
 
@@ -663,7 +683,7 @@ int pam_sm_acct_mgmt (pam_handle_t * pamh, int flags,
         free (arep.msg);
 
     close(tac_fd);
-
+    free_tacacs_server_addr();
     return status;
 }    /* pam_sm_acct_mgmt */
 
@@ -725,8 +745,10 @@ int pam_sm_chauthtok(pam_handle_t * pamh, int flags,
 
     if (   (pam_get_item(pamh, PAM_OLDAUTHTOK, &pam_pass) == PAM_SUCCESS)
         && (pam_pass != NULL) ) {
-         if ((pass = strdup(pam_pass)) == NULL)
+         if ((pass = strdup(pam_pass)) == NULL) {
+              free_tacacs_server_addr();
               return PAM_BUF_ERR;
+         }
     } else {
         pass = strdup("");
     }
@@ -735,6 +757,8 @@ int pam_sm_chauthtok(pam_handle_t * pamh, int flags,
         if(pass) {
                 free(pass);
         }
+
+        free_tacacs_server_addr();
         return PAM_USER_UNKNOWN;
     }
     
@@ -984,6 +1008,7 @@ finish:
         pass = NULL;
     }
 
+    free_tacacs_server_addr();
     return status;
 }    /* pam_sm_chauthtok */
 #endif

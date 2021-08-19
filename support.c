@@ -172,6 +172,37 @@ int tacacs_get_password (pam_handle_t * pamh, int flags
 }
 
 /*
+ * Set tacacs server addrinfo.
+ */
+void set_tacacs_server_addr(int tac_srv_no, struct addrinfo* server) {
+    tac_srv[tac_srv_no].addr = malloc(sizeof(struct addrinfo));
+    memcpy(tac_srv[tac_srv_no].addr, server, sizeof(struct addrinfo));
+
+    if (server->ai_family == AF_INET6) {
+        tac_srv[tac_srv_no].addr->ai_addr = malloc(sizeof(struct sockaddr_in6));
+    	memcpy(tac_srv[tac_srv_no].addr->ai_addr, server->ai_addr, sizeof(struct sockaddr_in6));
+    }
+    else {
+        tac_srv[tac_srv_no].addr->ai_addr = malloc(sizeof(struct sockaddr));
+    	memcpy(tac_srv[tac_srv_no].addr->ai_addr, server->ai_addr, sizeof(struct sockaddr));
+    }
+
+    tac_srv[tac_srv_no].addr->ai_canonname = NULL;
+    tac_srv[tac_srv_no].addr->ai_next = NULL;
+}
+
+/*
+ * Free tacacs server addrinfo.
+ */
+void free_tacacs_server_addr() {
+    int n;
+    for(n = 0; n < tac_srv_no; n++) {
+	free(tac_srv[tac_srv_no].addr->ai_addr);
+	free(tac_srv[tac_srv_no].addr);
+    }
+}
+
+/*
  * Parse one arguments.
  * Use this method for both:
  *    1. command line parameter
@@ -233,11 +264,16 @@ int _pam_parse_arg (const char *arg, char* current_secret, uint current_secret_b
             }
             if ((rv = getaddrinfo(server_name, (port == NULL) ? "49" : port, &hints, &servers)) == 0) {
                 for(server = servers; server != NULL && tac_srv_no < TAC_PLUS_MAXSERVERS; server = server->ai_next) {
-                    tac_srv[tac_srv_no].addr = server;
+	            /* set server address with allocate memory */
+                    set_tacacs_server_addr(tac_srv_no, server);
+
                     /* copy secret to key */
                     snprintf(tac_srv[tac_srv_no].key, sizeof(tac_srv[tac_srv_no].key), "%s", current_secret);
                     tac_srv_no++;
                 }
+
+		/* release servers memory */
+                freeaddrinfo(servers);
             } else {
                 _pam_log (LOG_ERR,
                     "skip invalid server: %s (getaddrinfo: %s)",

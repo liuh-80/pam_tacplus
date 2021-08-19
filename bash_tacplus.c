@@ -242,6 +242,7 @@ void plugin_init ()
 void plugin_uninit ()
 {
     output_verbose_log("tacacs plugin un-initialize.");
+    free_tacacs_server_addr();
 }
 
 /*
@@ -255,12 +256,14 @@ int on_shell_execve (char *user, int shell_level, char *cmd, char **argv)
     output_verbose_log ("    Command full path: %s\n", cmd);
     output_verbose_log ("    Parameters:\n");
     char **parameter_array_pointer = argv;
+    int argc = 0;
     while (*parameter_array_pointer != 0) {
         // output parameter
         output_verbose_log ("        %s\n", *parameter_array_pointer);
         
         // move to next parameter
         parameter_array_pointer++;
+	argc++;
     }
     
     // when shell_level > 1, it's a recursive command in shell script.
@@ -269,7 +272,7 @@ int on_shell_execve (char *user, int shell_level, char *cmd, char **argv)
         return 0;
     }
 
-    int ret = authorization_with_host_and_tty(user, cmd, argv, 0);
+    int ret = authorization_with_host_and_tty(user, cmd, argv, argc);
     switch (ret) {
         case 0:
             output_verbose_log ("%s authorize successed by TACACS+ with given arguments\n", cmd);
