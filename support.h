@@ -39,6 +39,7 @@ typedef struct {
 
 extern tacplus_server_t tac_srv[TAC_PLUS_MAXSERVERS];
 extern int tac_srv_no;
+extern char *__vrfname;
 
 extern char tac_service[64];
 extern char tac_protocol[64];

@@ -29,6 +29,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h> /* isspace() */
 
 tacplus_server_t tac_srv[TAC_PLUS_MAXSERVERS];
 int tac_srv_no = 0;
@@ -209,6 +210,25 @@ void free_tacacs_server_addr() {
     }
 }
 
+/* set source ip address for the outgoing tacacs packets */
+void set_source_ip(const char *tac_source_ip,
+                   struct addrinfo **source_address) {
+
+    struct addrinfo hints;
+    int rv;
+
+    /* set the source ip address for the tacacs packets */
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    if ((rv = getaddrinfo(tac_source_ip, NULL, &hints,
+                          source_address)) != 0) {
+        _pam_log(LOG_ERR, "error setting the source ip information");
+    } else {
+        _pam_log(LOG_DEBUG, "source ip is set");
+    }
+}
+
 /*
  * Parse one arguments.
  * Use this method for both:
@@ -313,11 +333,11 @@ int _pam_parse_arg (const char *arg, char* current_secret, uint current_secret_b
         } else { 
             tac_readtimeout_enable = 1;
         }
-    } else if(!strncmp(*argv, "vrf=", 4)) {
-        __vrfname = strdup(*argv + 4);
-    } else if (!strncmp (*argv, "source_ip=", strlen("source_ip="))) {
+    } else if(!strncmp(arg, "vrf=", 4)) {
+        __vrfname = strdup(arg + 4);
+    } else if (!strncmp (arg, "source_ip=", strlen("source_ip="))) {
         /* source ip for the packets */
-        strncpy (tac_source_ip, *argv + strlen("source_ip="), sizeof(tac_source_ip));
+        strncpy (tac_source_ip, arg + strlen("source_ip="), sizeof(tac_source_ip));
         set_source_ip (tac_source_ip, &tac_source_addr);
     } else {
         _pam_log (LOG_WARNING, "unrecognized option: %s", arg);
@@ -395,22 +415,3 @@ int _pam_parse (int argc, const char **argv) {
 
     return ctrl;
 }    /* _pam_parse */
-
-/* set source ip address for the outgoing tacacs packets */
-void set_source_ip(const char *tac_source_ip,
-                   struct addrinfo **source_address) {
-
-    struct addrinfo hints;
-    int rv;
-
-    /* set the source ip address for the tacacs packets */
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    if ((rv = getaddrinfo(tac_source_ip, NULL, &hints,
-                          source_address)) != 0) {
-        _pam_log(LOG_ERR, "error setting the source ip information");
-    } else {
-        _pam_log(LOG_DEBUG, "source ip is set");
-    }
-}

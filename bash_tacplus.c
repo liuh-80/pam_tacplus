@@ -149,7 +149,7 @@ int tacacs_authorization(
     uint16_t task_id = (uint16_t)getpid();
 
     for(server_idx = 0; server_idx < tac_srv_no; server_idx++) {
-        server_fd = tac_connect_single(tac_srv[server_idx].addr, tac_srv[server_idx].key, NULL, tac_timeout);
+        server_fd = tac_connect_single(tac_srv[server_idx].addr, tac_srv[server_idx].key, tac_source_addr, tac_timeout, __vrfname);
         if(server_fd < 0) {
             // connect to tacacs server failed
             output_debug("Failed to connecting to %s to request authorization for %s: %s\n", tac_ntop(tac_srv[server_idx].addr->ai_addr), cmd, strerror(errno));
