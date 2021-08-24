@@ -20,7 +20,7 @@ libtac/include/tacplus.h \
 libtac/include/libtac.h \
 libtac/include/cdefs.h
 
-lib_LTLIBRARIES = libtac.la
+lib_LTLIBRARIES = libtac.la libtacsupport.la
 libtac_la_SOURCES = \
 libtac/lib/acct_r.c \
 libtac/lib/acct_s.c \
@@ -48,6 +48,19 @@ $(libtac_include_HEADERS)
 libtac_la_CFLAGS = $(AM_CFLAGS) -I $(top_srcdir)/libtac/include
 libtac_la_LDFLAGS = -version-info 2:0:0 -shared
 
+libtacsupport_includedir = $(includedir)/libtac $(includedir)
+libtacsupport_include_HEADERS = \
+support.h \
+libtac/include/tacplus.h \
+libtac/include/libtac.h \
+libtac/include/cdefs.h
+
+libtacsupport_la_SOURCES = \
+support.c \
+$(libtacsupport_include_HEADERS)
+libtacsupport_la_CFLAGS = $(AM_CFLAGS) -I $(top_srcdir) -I $(top_srcdir)/libtac/include
+libtacsupport_la_LDFLAGS = -version-info 2:0:0 -shared
+
 moduledir = @pamdir@
 module_LTLIBRARIES = pam_tacplus.la
 pam_tacplus_la_SOURCES = pam_tacplus.h \
@@ -58,16 +71,7 @@ pam_tacplus_la_CFLAGS = $(AM_CFLAGS) -I $(top_srcdir)/libtac/include
 pam_tacplus_la_LDFLAGS = -module -avoid-version
 pam_tacplus_la_LIBADD = libtac.la
 
-module_LTLIBRARIES += bash_tacplus.la
-bash_tacplus_la_SOURCES = bash_tacplus.h \
-bash_tacplus.c \
-support.h \
-support.c
-bash_tacplus_la_CFLAGS = $(AM_CFLAGS) -I $(top_srcdir)/libtac/include
-bash_tacplus_la_LDFLAGS = -module -avoid-version
-bash_tacplus_la_LIBADD = libtac.la
-
-EXTRA_DIST = pam_tacplus.spec bash_tacplus.spec libtac.pc.in
+EXTRA_DIST = pam_tacplus.spec libtac.pc.in libtacsupport.pc.in
 if DOC
 dist_doc_DATA = sample.pam README.md AUTHORS ChangeLog
 endif
@@ -77,5 +81,5 @@ MAINTAINERCLEANFILES = Makefile.in config.h.in configure aclocal.m4 \
                        config/install-sh config/ltmain.sh config/missing
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libtac.pc
+pkgconfig_DATA = libtac.pc libtacsupport.pc 
 
