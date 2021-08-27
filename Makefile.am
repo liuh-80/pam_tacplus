@@ -48,12 +48,9 @@ $(libtac_include_HEADERS)
 libtac_la_CFLAGS = $(AM_CFLAGS) -I $(top_srcdir)/libtac/include
 libtac_la_LDFLAGS = -version-info 2:0:0 -shared
 
-libtacsupport_includedir = $(includedir)/libtac $(includedir)
+libtacsupport_includedir = $(includedir)/libtac
 libtacsupport_include_HEADERS = \
-support.h \
-libtac/include/tacplus.h \
-libtac/include/libtac.h \
-libtac/include/cdefs.h
+support.h
 
 libtacsupport_la_SOURCES = \
 support.c \

@@ -96,6 +96,6 @@ dnl --------------------------------------------------------------------
 dnl Generate made files
 AC_CONFIG_FILES([Makefile
                  libtac.pc
-                 pam_tacplus.spec
-                 libtacsupport.pc])
+                 libtacsupport.pc
+                 pam_tacplus.spec])
 AC_OUTPUT

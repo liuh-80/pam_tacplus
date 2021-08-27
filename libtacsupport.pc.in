@@ -7,5 +7,5 @@ Name: libtacsupport
 Description: TACACS+ support lib implementation
 URL: https://github.com/jeroennijhof/pam_tacplus
 Version: @VERSION@
-Libs: -L${libdir} -ltacsupport -ltac
+Libs: -L${libdir} -ltacsupport
 Cflags: -I${includedir}
