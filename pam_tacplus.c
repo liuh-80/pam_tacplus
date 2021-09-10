@@ -138,8 +138,10 @@ int _pam_account(pam_handle_t *pamh, int argc, const char **argv,
         syslog(LOG_DEBUG, "%s: tac_srv_no=%d", __FUNCTION__, tac_srv_no);
     }
 
-    if ((user = _pam_get_user(pamh)) == NULL)
+    if ((user = _pam_get_user(pamh)) == NULL) {
         return PAM_USER_UNKNOWN;
+    }
+
 
     if (ctrl & PAM_TAC_DEBUG)
         syslog(LOG_DEBUG, "%s: username [%s] obtained", __FUNCTION__, user);
@@ -177,7 +179,7 @@ int _pam_account(pam_handle_t *pamh, int argc, const char **argv,
 
     status = PAM_SESSION_ERR;
     for(srv_i = 0; srv_i < tac_srv_no; srv_i++) {
-        tac_fd = tac_connect_single(tac_srv[srv_i].addr, tac_srv[srv_i].key, tac_source_addr, tac_timeout, __vrfname);
+        tac_fd = tac_connect_single(tac_srv[srv_i].addr, tac_srv[srv_i].key, &tac_source_addr, tac_timeout, __vrfname);
         if (tac_fd < 0) {
             _pam_log(LOG_WARNING, "%s: error sending %s (fd)",
                 __FUNCTION__, typemsg);
@@ -208,6 +210,7 @@ int _pam_account(pam_handle_t *pamh, int argc, const char **argv,
         signal(SIGCHLD, SIG_DFL);
         signal(SIGHUP, SIG_DFL);
     }
+
     return status;
 }
 
@@ -238,8 +241,9 @@ int pam_sm_authenticate (pam_handle_t * pamh, int flags,
         syslog(LOG_DEBUG, "%s: called (pam_tacplus v%u.%u.%u)",
             __FUNCTION__, PAM_TAC_VMAJ, PAM_TAC_VMIN, PAM_TAC_VPAT);
 
-    if ((user = _pam_get_user(pamh)) == NULL)
+    if ((user = _pam_get_user(pamh)) == NULL) {
         return PAM_USER_UNKNOWN;
+    }
 
     if (ctrl & PAM_TAC_DEBUG)
         syslog(LOG_DEBUG, "%s: user [%s] obtained", __FUNCTION__, user);
@@ -276,7 +280,7 @@ int pam_sm_authenticate (pam_handle_t * pamh, int flags,
         if (ctrl & PAM_TAC_DEBUG)
             syslog(LOG_DEBUG, "%s: trying srv %d", __FUNCTION__, srv_i );
 
-        tac_fd = tac_connect_single(tac_srv[srv_i].addr, tac_srv[srv_i].key, tac_source_addr, tac_timeout, __vrfname);
+        tac_fd = tac_connect_single(tac_srv[srv_i].addr, tac_srv[srv_i].key, &tac_source_addr, tac_timeout, __vrfname);
         if (tac_fd < 0) {
             _pam_log(LOG_ERR, "%s: connection to srv %d failed", __FUNCTION__, srv_i);
             continue;
@@ -323,7 +327,8 @@ int pam_sm_authenticate (pam_handle_t * pamh, int flags,
                     status = PAM_SUCCESS;
                     communicating = 0;
                     active_server.addr = tac_srv[srv_i].addr;
-                    active_server.key = tac_srv[srv_i].key;
+                    /* copy secret to key */
+                    snprintf(active_server.key, sizeof(active_server.key), "%s", tac_srv[srv_i].key);
 
                     if (ctrl & PAM_TAC_DEBUG)
                         syslog(LOG_DEBUG, "%s: active srv %d", __FUNCTION__, srv_i);
@@ -537,8 +542,9 @@ int pam_sm_acct_mgmt (pam_handle_t * pamh, int flags,
         syslog (LOG_DEBUG, "%s: called (pam_tacplus v%u.%u.%u)"
             , __FUNCTION__, PAM_TAC_VMAJ, PAM_TAC_VMIN, PAM_TAC_VPAT);
 
-    if ((user = _pam_get_user(pamh)) == NULL)
+    if ((user = _pam_get_user(pamh)) == NULL) {
         return PAM_USER_UNKNOWN;
+    }
 
     if (ctrl & PAM_TAC_DEBUG)
         syslog(LOG_DEBUG, "%s: username obtained [%s]", __FUNCTION__, user);
@@ -579,11 +585,13 @@ int pam_sm_acct_mgmt (pam_handle_t * pamh, int flags,
     if(tac_protocol[0] != '\0')
       tac_add_attrib(&attr, "protocol", tac_protocol);
 
-    tac_fd = tac_connect_single(active_server.addr, active_server.key, tac_source_addr, tac_timeout, __vrfname);
+    tac_fd = tac_connect_single(active_server.addr, active_server.key, &tac_source_addr, tac_timeout, __vrfname);
     if(tac_fd < 0) {
         _pam_log (LOG_ERR, "TACACS+ server unavailable");
-        if(arep.msg != NULL)
+        if(arep.msg != NULL) {
             free (arep.msg);
+        }
+
         return PAM_AUTH_ERR;
     }
 
@@ -664,7 +672,6 @@ int pam_sm_acct_mgmt (pam_handle_t * pamh, int flags,
         free (arep.msg);
 
     close(tac_fd);
-
     return status;
 }    /* pam_sm_acct_mgmt */
 
@@ -726,8 +733,9 @@ int pam_sm_chauthtok(pam_handle_t * pamh, int flags,
 
     if (   (pam_get_item(pamh, PAM_OLDAUTHTOK, &pam_pass) == PAM_SUCCESS)
         && (pam_pass != NULL) ) {
-         if ((pass = strdup(pam_pass)) == NULL)
+         if ((pass = strdup(pam_pass)) == NULL) {
               return PAM_BUF_ERR;
+         }
     } else {
         pass = strdup("");
     }
@@ -736,6 +744,7 @@ int pam_sm_chauthtok(pam_handle_t * pamh, int flags,
         if(pass) {
                 free(pass);
         }
+
         return PAM_USER_UNKNOWN;
     }
     
@@ -762,7 +771,7 @@ int pam_sm_chauthtok(pam_handle_t * pamh, int flags,
         if (ctrl & PAM_TAC_DEBUG)
             syslog(LOG_DEBUG, "%s: trying srv %d", __FUNCTION__, srv_i );
 
-        tac_fd = tac_connect_single(tac_srv[srv_i].addr, tac_srv[srv_i].key, tac_source_addr, tac_timeout, __vrfname);
+        tac_fd = tac_connect_single(tac_srv[srv_i].addr, tac_srv[srv_i].key, &tac_source_addr, tac_timeout, __vrfname);
         if (tac_fd < 0) {
             _pam_log(LOG_ERR, "connection failed srv %d: %m", srv_i);
             continue;
@@ -820,7 +829,8 @@ int pam_sm_chauthtok(pam_handle_t * pamh, int flags,
                     communicating = 0;
 
                     active_server.addr = tac_srv[srv_i].addr;
-                    active_server.key = tac_srv[srv_i].key;
+                    /* copy secret to key */
+                    snprintf(active_server.key, sizeof(active_server.key), "%s", tac_srv[srv_i].key);
 
                     if (ctrl & PAM_TAC_DEBUG)
                         syslog(LOG_DEBUG, "%s: active srv %d", __FUNCTION__, srv_i);

@@ -30,7 +30,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* tacacs server information */
 tacplus_server_t tac_srv[TAC_PLUS_MAXSERVERS];
+struct addrinfo tac_srv_addr[TAC_PLUS_MAXSERVERS];
+struct sockaddr tac_sock_addr[TAC_PLUS_MAXSERVERS];
+struct sockaddr_in6 tac_sock6_addr[TAC_PLUS_MAXSERVERS];
+
 int tac_srv_no = 0;
 
 char tac_service[64];
@@ -38,7 +43,11 @@ char tac_protocol[64];
 char tac_prompt[64];
 char *__vrfname=NULL;
 char tac_source_ip[64];
-struct addrinfo *tac_source_addr = NULL;
+
+/* source address */
+struct addrinfo tac_source_addr;
+struct sockaddr tac_source_sock_addr;
+struct sockaddr_in6 tac_source_sock6_addr;
 
 void _pam_log(int err, const char *format,...) {
     char msg[256];
@@ -173,9 +182,38 @@ int tacacs_get_password (pam_handle_t * pamh, int flags
     return PAM_SUCCESS;
 }
 
+}
+/* set source ip address for the outgoing tacacs packets */
+void set_source_ip(const char *tac_source_ip) {
+    struct addrinfo hints, *source_address;
+    int rv;
+    /* set the source ip address for the tacacs packets */
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    if ((rv = getaddrinfo(tac_source_ip, NULL, &hints,
+                          &source_address)) != 0) {
+        _pam_log(LOG_ERR, "error setting the source ip information");
+    } else {
+		memcpy(&tac_source_addr, source_address, sizeof(struct addrinfo));
+		if (source_address->ai_family == AF_INET6) {
+			tac_source_addr.ai_addr = (struct sockaddr *)&(tac_source_sock6_addr);
+			memcpy(tac_source_addr.ai_addr, source_address->ai_addr, sizeof(struct sockaddr_in6));
+		}
+		else {
+			tac_source_addr.ai_addr = &(tac_source_sock_addr);
+			memcpy(tac_source_addr.ai_addr, source_address->ai_addr, sizeof(struct sockaddr));
+		}
+		
+		
+        freeaddrinfo(source_address);
+        _pam_log(LOG_DEBUG, "source ip is set");
+    }
+}
 int _pam_parse (int argc, const char **argv) {
     int ctrl = 0;
-    const char *current_secret = NULL;
+    char current_secret[256];
+    memset(current_secret, 0, sizeof(current_secret));
 
     /* otherwise the list will grow with each call */
     memset(tac_srv, 0, sizeof(tacplus_server_t) * TAC_PLUS_MAXSERVERS);
@@ -246,10 +284,16 @@ int _pam_parse (int argc, const char **argv) {
                 }
                 if ((rv = getaddrinfo(server_name, (port == NULL) ? "49" : port, &hints, &servers)) == 0) {
                     for(server = servers; server != NULL && tac_srv_no < TAC_PLUS_MAXSERVERS; server = server->ai_next) {
-                        tac_srv[tac_srv_no].addr = server;
-                        tac_srv[tac_srv_no].key = current_secret;
+                        /* set server address with allocate memory */
+                        set_tacacs_server_addr(tac_srv_no, server);
+
+                        /* copy secret to key */
+                        snprintf(tac_srv[tac_srv_no].key, sizeof(tac_srv[tac_srv_no].key), "%s", current_secret);
                         tac_srv_no++;
                     }
+
+                    /* release servers memory */
+                    freeaddrinfo(servers);
                 } else {
                     _pam_log (LOG_ERR,
                         "skip invalid server: %s (getaddrinfo: %s)",
@@ -262,14 +306,16 @@ int _pam_parse (int argc, const char **argv) {
         } else if (!strncmp (*argv, "secret=", 7)) {
             int i;
 
-            current_secret = *argv + 7;     /* points right into argv (which is const) */
+            /* points right into arg (which is const) */
+            snprintf(current_secret, sizeof(current_secret), "%s", arg + 7);
 
             /* if 'secret=' was given after a 'server=' parameter, fill in the current secret */
             for(i = tac_srv_no-1; i >= 0; i--) {
                 if (tac_srv[i].key != NULL)
                     break;
 
-                tac_srv[i].key = current_secret;
+                /* copy secret to key */
+                snprintf(tac_srv[i].key, sizeof(tac_srv[i].key), "%s", current_secret);
             }
         } else if (!strncmp (*argv, "timeout=", 8)) {
             /* FIXME atoi() doesn't handle invalid numeric strings well */
@@ -285,7 +331,7 @@ int _pam_parse (int argc, const char **argv) {
         } else if (!strncmp (*argv, "source_ip=", strlen("source_ip="))) {
             /* source ip for the packets */
             strncpy (tac_source_ip, *argv + strlen("source_ip="), sizeof(tac_source_ip));
-            set_source_ip (tac_source_ip, &tac_source_addr);
+            set_source_ip (tac_source_ip);
         } else {
             _pam_log (LOG_WARNING, "unrecognized option: %s", *argv);
         }
@@ -309,22 +355,3 @@ int _pam_parse (int argc, const char **argv) {
 
     return ctrl;
 }    /* _pam_parse */
-
-/* set source ip address for the outgoing tacacs packets */
-void set_source_ip(const char *tac_source_ip,
-                   struct addrinfo **source_address) {
-
-    struct addrinfo hints;
-    int rv;
-
-    /* set the source ip address for the tacacs packets */
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    if ((rv = getaddrinfo(tac_source_ip, NULL, &hints,
-                          source_address)) != 0) {
-        _pam_log(LOG_ERR, "error setting the source ip information");
-    } else {
-        _pam_log(LOG_DEBUG, "source ip is set");
-    }
-}
