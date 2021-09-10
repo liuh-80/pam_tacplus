@@ -53,9 +53,6 @@ static tacplus_server_t active_server;
 /* accounting task identifier */
 static short int task_id = 0;
 
-extern char *__vrfname;
-
-
 /* Helper functions */
 int _pam_send_account(int tac_fd, int type, const char *user, char *tty,
     char *r_addr, char *cmd) {
