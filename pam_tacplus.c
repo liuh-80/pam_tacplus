@@ -176,7 +176,7 @@ int _pam_account(pam_handle_t *pamh, int argc, const char **argv,
 
     status = PAM_SESSION_ERR;
     for(srv_i = 0; srv_i < tac_srv_no; srv_i++) {
-        tac_fd = tac_connect_single(tac_srv[srv_i].addr, tac_srv[srv_i].key, &tac_source_addr, tac_timeout, __vrfname);
+        tac_fd = tac_connect_single(tac_srv[srv_i].addr, tac_srv[srv_i].key, tac_source_addr, tac_timeout, __vrfname);
         if (tac_fd < 0) {
             _pam_log(LOG_WARNING, "%s: error sending %s (fd)",
                 __FUNCTION__, typemsg);
@@ -277,7 +277,7 @@ int pam_sm_authenticate (pam_handle_t * pamh, int flags,
         if (ctrl & PAM_TAC_DEBUG)
             syslog(LOG_DEBUG, "%s: trying srv %d", __FUNCTION__, srv_i );
 
-        tac_fd = tac_connect_single(tac_srv[srv_i].addr, tac_srv[srv_i].key, &tac_source_addr, tac_timeout, __vrfname);
+        tac_fd = tac_connect_single(tac_srv[srv_i].addr, tac_srv[srv_i].key, tac_source_addr, tac_timeout, __vrfname);
         if (tac_fd < 0) {
             _pam_log(LOG_ERR, "%s: connection to srv %d failed", __FUNCTION__, srv_i);
             continue;
@@ -582,7 +582,7 @@ int pam_sm_acct_mgmt (pam_handle_t * pamh, int flags,
     if(tac_protocol[0] != '\0')
       tac_add_attrib(&attr, "protocol", tac_protocol);
 
-    tac_fd = tac_connect_single(active_server.addr, active_server.key, &tac_source_addr, tac_timeout, __vrfname);
+    tac_fd = tac_connect_single(active_server.addr, active_server.key, tac_source_addr, tac_timeout, __vrfname);
     if(tac_fd < 0) {
         _pam_log (LOG_ERR, "TACACS+ server unavailable");
         if(arep.msg != NULL) {
@@ -768,7 +768,7 @@ int pam_sm_chauthtok(pam_handle_t * pamh, int flags,
         if (ctrl & PAM_TAC_DEBUG)
             syslog(LOG_DEBUG, "%s: trying srv %d", __FUNCTION__, srv_i );
 
-        tac_fd = tac_connect_single(tac_srv[srv_i].addr, tac_srv[srv_i].key, &tac_source_addr, tac_timeout, __vrfname);
+        tac_fd = tac_connect_single(tac_srv[srv_i].addr, tac_srv[srv_i].key, tac_source_addr, tac_timeout, __vrfname);
         if (tac_fd < 0) {
             _pam_log(LOG_ERR, "connection failed srv %d: %m", srv_i);
             continue;
