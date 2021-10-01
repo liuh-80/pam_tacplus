@@ -46,7 +46,8 @@ char *__vrfname=NULL;
 char tac_source_ip[64];
 
 /* source address */
-struct addrinfo tac_source_addr;
+struct addrinfo *tac_source_addr=NULL;
+struct addrinfo tac_source_address;
 struct sockaddr tac_source_sock_addr;
 struct sockaddr_in6 tac_source_sock6_addr;
 
@@ -217,18 +218,19 @@ void set_source_ip(const char *tac_source_ip) {
                           &source_address)) != 0) {
         _pam_log(LOG_ERR, "error setting the source ip information");
     } else {
-		memcpy(&tac_source_addr, source_address, sizeof(struct addrinfo));
+        tac_source_addr = &tac_source_address;
+        memcpy(tac_source_addr, source_address, sizeof(struct addrinfo));
 
-		if (source_address->ai_family == AF_INET6) {
-			tac_source_addr.ai_addr = (struct sockaddr *)&(tac_source_sock6_addr);
-			memcpy(tac_source_addr.ai_addr, source_address->ai_addr, sizeof(struct sockaddr_in6));
-		}
-		else {
-			tac_source_addr.ai_addr = &(tac_source_sock_addr);
-			memcpy(tac_source_addr.ai_addr, source_address->ai_addr, sizeof(struct sockaddr));
-		}
-		
-		
+        if (source_address->ai_family == AF_INET6) {
+            tac_source_addr->ai_addr = (struct sockaddr *)&(tac_source_sock6_addr);
+            memcpy(tac_source_addr->ai_addr, source_address->ai_addr, sizeof(struct sockaddr_in6));
+        }
+        else {
+            tac_source_addr->ai_addr = &(tac_source_sock_addr);
+            memcpy(tac_source_addr->ai_addr, source_address->ai_addr, sizeof(struct sockaddr));
+        }
+        
+        
         freeaddrinfo(source_address);
         _pam_log(LOG_DEBUG, "source ip is set");
     }

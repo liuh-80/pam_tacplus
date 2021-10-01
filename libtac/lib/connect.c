@@ -50,7 +50,7 @@ int tac_connect(struct addrinfo **server, char **key, int servers, char *iface) 
         TACSYSLOG((LOG_ERR, "%s: no TACACS+ servers defined", __FUNCTION__))
     } else {
         for ( tries = 0; tries < servers; tries++ ) {   
-            if((fd=tac_connect_single(server[tries], key[tries], NULL, tac_timeout, iface)) >= 0 ) {
+            if((fd=tac_connect_single(server[tries], key[tries], tac_source_addr, tac_timeout, iface)) >= 0 ) {
                 /* tac_secret was set in tac_connect_single on success */
                 break;
             }
