@@ -45,7 +45,7 @@ extern char *__vrfname;
 extern char tac_service[64];
 extern char tac_protocol[64];
 extern char tac_prompt[64];
-extern struct addrinfo tac_source_addr;
+extern struct addrinfo *tac_source_addr;
 
 int _pam_parse (int, const char **);
 unsigned long _resolve_name (char *);
