@@ -32,6 +32,14 @@
 #define PAM_TAC_USE_FIRST_PASS 0x04
 #define PAM_TAC_TRY_FIRST_PASS 0x08
 
+/* accounting setting flag */
+#define ACCOUNTING_FLAG_LOCAL  0x10
+#define ACCOUNTING_FLAG_TACACS 0x20
+
+/* authorization setting flag */
+#define AUTHORIZATION_FLAG_LOCAL  0x40
+#define AUTHORIZATION_FLAG_TACACS 0x80
+
 typedef struct {
     struct addrinfo *addr;
     char key[256];
