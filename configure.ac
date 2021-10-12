@@ -95,6 +95,7 @@ AM_CONDITIONAL(DOC, test "x$enable_doc" != "xno")
 dnl --------------------------------------------------------------------
 dnl Generate made files
 AC_CONFIG_FILES([Makefile
-		 libtac.pc
+                 libtac.pc
+                 libtacsupport.pc
                  pam_tacplus.spec])
 AC_OUTPUT
