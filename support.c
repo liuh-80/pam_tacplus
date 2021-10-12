@@ -370,6 +370,14 @@ int _pam_parse_arg (const char *arg, char* current_secret, uint current_secret_b
         /* source ip for the packets */
         strncpy (tac_source_ip, arg + strlen("source_ip="), sizeof(tac_source_ip));
         set_source_ip (tac_source_ip);
+    } else if (!strcmp (arg, "local_accounting")) {
+        ctrl |= ACCOUNTING_FLAG_LOCAL;
+    } else if (!strcmp (arg, "tacacs_accounting")) {
+        ctrl |= ACCOUNTING_FLAG_TACACS;
+    } else if (!strcmp (arg, "local_authorization")) {
+        ctrl |= AUTHORIZATION_FLAG_LOCAL;
+    } else if (!strcmp (arg, "tacacs_authorization")) {
+        ctrl |= AUTHORIZATION_FLAG_TACACS;
     } else {
         _pam_log (LOG_WARNING, "unrecognized option: %s", arg);
     }
