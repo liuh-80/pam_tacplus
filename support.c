@@ -30,7 +30,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* tacacs server information */
 tacplus_server_t tac_srv[TAC_PLUS_MAXSERVERS];
+struct addrinfo tac_srv_addr[TAC_PLUS_MAXSERVERS];
+struct sockaddr tac_sock_addr[TAC_PLUS_MAXSERVERS];
+struct sockaddr_in6 tac_sock6_addr[TAC_PLUS_MAXSERVERS];
+
 int tac_srv_no = 0;
 
 char tac_service[64];
@@ -173,6 +178,26 @@ int tacacs_get_password (pam_handle_t * pamh, int flags
     return PAM_SUCCESS;
 }
 
+/*
+ * Set tacacs server addrinfo.
+ */
+void set_tacacs_server_addr(int tac_srv_no, struct addrinfo* server) {
+    tac_srv[tac_srv_no].addr = &(tac_srv_addr[tac_srv_no]);
+    memcpy(tac_srv[tac_srv_no].addr, server, sizeof(struct addrinfo));
+
+    if (server->ai_family == AF_INET6) {
+        tac_srv[tac_srv_no].addr->ai_addr = (struct sockaddr *)&(tac_sock6_addr[tac_srv_no]);
+        memcpy(tac_srv[tac_srv_no].addr->ai_addr, server->ai_addr, sizeof(struct sockaddr_in6));
+    }
+    else {
+        tac_srv[tac_srv_no].addr->ai_addr = &(tac_sock_addr[tac_srv_no]);
+        memcpy(tac_srv[tac_srv_no].addr->ai_addr, server->ai_addr, sizeof(struct sockaddr));
+    }
+
+    tac_srv[tac_srv_no].addr->ai_canonname = NULL;
+    tac_srv[tac_srv_no].addr->ai_next = NULL;
+}
+
 /* set source ip address for the outgoing tacacs packets */
 void set_source_ip(const char *tac_source_ip) {
     /*
@@ -284,8 +309,11 @@ int _pam_parse (int argc, const char **argv) {
                 }
                 if ((rv = getaddrinfo(server_name, (port == NULL) ? "49" : port, &hints, &servers)) == 0) {
                     for(server = servers; server != NULL && tac_srv_no < TAC_PLUS_MAXSERVERS; server = server->ai_next) {
-                        tac_srv[tac_srv_no].addr = server;
-                        tac_srv[tac_srv_no].key = current_secret;
+                        /* set server address with allocate memory */
+                        set_tacacs_server_addr(tac_srv_no, server);
+
+                        /* copy secret to key */
+                        snprintf(tac_srv[tac_srv_no].key, sizeof(tac_srv[tac_srv_no].key), "%s", current_secret);
                         tac_srv_no++;
                     }
                 } else {
@@ -304,10 +332,11 @@ int _pam_parse (int argc, const char **argv) {
 
             /* if 'secret=' was given after a 'server=' parameter, fill in the current secret */
             for(i = tac_srv_no-1; i >= 0; i--) {
-                if (tac_srv[i].key != NULL)
+                if (tac_srv[i].key[0] != 0)
                     break;
 
-                tac_srv[i].key = current_secret;
+                /* copy secret to key */
+                snprintf(tac_srv[i].key, sizeof(tac_srv[i].key), "%s", current_secret);
             }
         } else if (!strncmp (*argv, "timeout=", 8)) {
             /* FIXME atoi() doesn't handle invalid numeric strings well */

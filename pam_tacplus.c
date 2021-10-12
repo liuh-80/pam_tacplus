@@ -323,7 +323,8 @@ int pam_sm_authenticate (pam_handle_t * pamh, int flags,
                     status = PAM_SUCCESS;
                     communicating = 0;
                     active_server.addr = tac_srv[srv_i].addr;
-                    active_server.key = tac_srv[srv_i].key;
+                    /* copy secret to key */
+                    snprintf(active_server.key, sizeof(active_server.key), "%s", tac_srv[srv_i].key);
 
                     if (ctrl & PAM_TAC_DEBUG)
                         syslog(LOG_DEBUG, "%s: active srv %d", __FUNCTION__, srv_i);
@@ -820,7 +821,8 @@ int pam_sm_chauthtok(pam_handle_t * pamh, int flags,
                     communicating = 0;
 
                     active_server.addr = tac_srv[srv_i].addr;
-                    active_server.key = tac_srv[srv_i].key;
+                    /* copy secret to key */
+                    snprintf(active_server.key, sizeof(active_server.key), "%s", tac_srv[srv_i].key);
 
                     if (ctrl & PAM_TAC_DEBUG)
                         syslog(LOG_DEBUG, "%s: active srv %d", __FUNCTION__, srv_i);
