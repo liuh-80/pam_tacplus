@@ -31,6 +31,9 @@
 #include <string.h>
 #include <ctype.h> /* isspace() */
 
+/* tacacs config file splitter */
+#define CONFIG_FILE_SPLITTER " ,\t\n\r\f"
+
 /* tacacs server information */
 tacplus_server_t tac_srv[TAC_PLUS_MAXSERVERS];
 struct addrinfo tac_srv_addr[TAC_PLUS_MAXSERVERS];
@@ -238,6 +241,26 @@ void set_source_ip(const char *tac_source_ip) {
 }
 
 /*
+ * Reset configuration variables.
+ * This method need to be called before parse config, otherwise the server list will grow with each call.
+ */
+int reset_config_variables () {
+    memset(tac_srv, 0, sizeof(tacplus_server_t) * TAC_PLUS_MAXSERVERS);
+    tac_srv_no = 0;
+
+    tac_service[0] = 0;
+    tac_protocol[0] = 0;
+    tac_prompt[0] = 0;
+    tac_login[0] = 0;
+    tac_source_ip[0] = 0;
+
+    if (tac_source_addr != NULL) {
+        /* reset source address */
+        tac_source_addr = NULL;
+    }
+}
+
+/*
  * Parse one arguments.
  * Use this method for both:
  *    1. command line parameter
@@ -246,7 +269,7 @@ void set_source_ip(const char *tac_source_ip) {
 int _pam_parse_arg (const char *arg, char* current_secret, uint current_secret_buffer_size) {
     int ctrl = 0;
 
-    if (!strcmp (arg, "debug")) { /* all */
+    if (!strcmp (arg, "debug") || !strcmp (arg, "debug=on")) { /* all */
         ctrl |= PAM_TAC_DEBUG;
     } else if (!strcmp (arg, "use_first_pass")) {
         ctrl |= PAM_TAC_USE_FIRST_PASS;
@@ -362,6 +385,11 @@ int parse_config_file(const char *file) {
     FILE *config_file;
     char line_buffer[256];
     int ctrl = 0;
+    char current_secret[256];
+    memset(current_secret, 0, sizeof(current_secret));
+
+    /* otherwise the list will grow with each call */
+    reset_config_variables();
 
     config_file = fopen(file, "r");
     if(config_file == NULL) {
@@ -369,18 +397,14 @@ int parse_config_file(const char *file) {
         return 0;
     }
 
-    if (tac_source_addr != NULL) {
-        /* reset source address */
-        tac_source_addr = NULL;
-    }
-
-    char current_secret[256];
-    memset(current_secret, 0, sizeof(current_secret));
     while (fgets(line_buffer, sizeof line_buffer, config_file)) {
         if(*line_buffer == '#' || isspace(*line_buffer))
             continue; /* skip comments and blank line. */
-        strtok(line_buffer, " \t\n\r\f");
-        ctrl |= _pam_parse_arg(line_buffer, current_secret, sizeof(current_secret));
+        char* config_item = strtok(line_buffer, CONFIG_FILE_SPLITTER);
+        while (config_item != NULL) {
+            ctrl |= _pam_parse_arg(config_item, current_secret, sizeof(current_secret));
+            config_item = strtok(NULL, CONFIG_FILE_SPLITTER);
+        }
     }
 
     fclose(config_file);
