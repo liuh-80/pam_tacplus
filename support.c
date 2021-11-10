@@ -385,8 +385,6 @@ int parse_config_file(const char *file) {
     FILE *config_file;
     char line_buffer[256];
     int ctrl = 0;
-    char current_secret[256];
-    memset(current_secret, 0, sizeof(current_secret));
 
     /* otherwise the list will grow with each call */
     reset_config_variables();
@@ -397,6 +395,8 @@ int parse_config_file(const char *file) {
         return 0;
     }
 
+    char current_secret[256];
+    memset(current_secret, 0, sizeof(current_secret));
     while (fgets(line_buffer, sizeof line_buffer, config_file)) {
         if(*line_buffer == '#' || isspace(*line_buffer))
             continue; /* skip comments and blank line. */
