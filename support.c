@@ -269,7 +269,7 @@ int reset_config_variables () {
 int _pam_parse_arg (const char *arg, char* current_secret, uint current_secret_buffer_size) {
     int ctrl = 0;
 
-    if (!strcmp (arg, "debug") || !strcmp (arg, "debug=on")) { /* all */
+    if (!strcmp (arg, "debug")) { /* all */
         ctrl |= PAM_TAC_DEBUG;
     } else if (!strcmp (arg, "use_first_pass")) {
         ctrl |= PAM_TAC_USE_FIRST_PASS;
