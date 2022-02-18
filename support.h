@@ -59,6 +59,7 @@ extern struct addrinfo *tac_source_addr;
 int _pam_parse (int, const char **);
 unsigned long _resolve_name (char *);
 unsigned long _getserveraddr (char *serv);
+int validate_not_sshd_bad_pass(const char *pass);
 int tacacs_get_password (pam_handle_t *, int, int, char **);
 int converse (pam_handle_t *, int, const struct pam_message *, struct pam_response **);
 void _pam_log (int, const char *, ...);

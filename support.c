@@ -117,6 +117,43 @@ int converse(pam_handle_t * pamh, int nargs, const struct pam_message *message,
     return retval;
 }
 
+/*
+ * Ref: From <https://groups.google.com/g/mailing.unix.openssh-dev/c/ViHvtciKYh0>
+ * For future archive searchers:
+ * > Why does OpenSSH replaces the password entered by the user with the
+ * > bad password - "\b\n\r\177INCORRECT
+ *
+ * There are some situations where sshd determines a user can't log in.
+ * Typical samples of that are DenyUsers or PermitRootLogin.
+ * In those cases sshd *still* calls PAM, so that delays set by it are
+ * still performed to the user (without leaking info about accounts
+ * existing, disabled, etc.). But in order to ensure it can't succeed,
+ * replaces the password with that impossible one.
+ *
+ */
+int validate_not_sshd_bad_pass(const char *pass)
+{
+    const char *SSHD_BAD_PASS = "\010\012\015\177INCORRECT";
+    const int SSHD_BAD_PASS_LEN = strlen(SSHD_BAD_PASS);
+
+    int len = strlen(pass);
+    const char *p = pass;
+
+    if (len == 0)
+        return PAM_SUCCESS;
+
+    while (len > 0) {
+        int l = len < SSHD_BAD_PASS_LEN ? len : SSHD_BAD_PASS_LEN;
+
+        if (strncmp(p, SSHD_BAD_PASS, l) != 0)
+            return PAM_SUCCESS;
+
+        len -= l;
+        p += l;
+    }
+    return PAM_AUTH_ERR;
+}
+
 /* stolen from pam_stress */
 int tacacs_get_password (pam_handle_t * pamh, int flags
     ,int ctrl, char **password) {

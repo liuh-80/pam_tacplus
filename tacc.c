@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
 				break;
 			case 'L':
 				// tac_login is a global variable initialized in libtac
-				bzero(tac_login, sizeof(tac_login));
+				memset(tac_login, 0, sizeof(tac_login));
 				strncpy(tac_login, optarg, sizeof(tac_login) - 1);
 				break;
 			case 'p':
@@ -312,7 +312,7 @@ int main(int argc, char **argv) {
 	}
 
 	/* we no longer need the password in our address space */
-	bzero(pass, strlen(pass));
+	memset(pass, 0, strlen(pass));
 	pass = NULL;
 
 	if (do_account) {

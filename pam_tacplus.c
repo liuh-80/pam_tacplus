@@ -248,6 +248,13 @@ int pam_sm_authenticate (pam_handle_t * pamh, int flags,
         return PAM_CRED_INSUFFICIENT;
     }
 
+    if (validate_not_sshd_bad_pass(pass) != PAM_SUCCESS) {
+        syslog(LOG_LOCAL0|LOG_ERR, "auth fail: Password incorrect. user: %s", user);
+        memset(pass, 0, strlen (pass));
+        free(pass);
+        return PAM_AUTH_ERR;
+    }
+
     retval = pam_set_item (pamh, PAM_AUTHTOK, pass);
     if (retval != PAM_SUCCESS) {
         _pam_log(LOG_ERR, "unable to set password");
@@ -481,7 +488,7 @@ int pam_sm_authenticate (pam_handle_t * pamh, int flags,
         syslog(LOG_DEBUG, "%s: exit with pam status: %d", __FUNCTION__, status);
 
     if (NULL != pass) {
-        bzero(pass, strlen (pass));
+        memset(pass, 0, strlen (pass));
         free(pass);
         pass = NULL;
     }
@@ -978,7 +985,7 @@ finish:
         syslog(LOG_DEBUG, "%s: exit with pam status: %d", __FUNCTION__, status);
 
     if (NULL != pass) {
-        bzero(pass, strlen(pass));
+        memset(pass, 0, strlen(pass));
         free(pass);
         pass = NULL;
     }
